@@ -4,6 +4,10 @@ We introduce Cross-Layer Independent Deformable Description (CLIDD), a high-perf
 
 <img src="assets/visualization.png" width='1000'>
 
+The visualization below shows the A48 configuration tested on the KITTI dataset.
+
+<img src="assets/KITTI-A48.gif" width='1000'>
+
 ## Model Zoo
 
 Available model variants are listed below. FPS results are measured on an NVIDIA Jetson Orin-NX.
