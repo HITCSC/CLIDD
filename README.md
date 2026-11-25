@@ -47,3 +47,30 @@ python demo_seq.py camera A48
 ```
 
 **Note:** Initial execution or significant changes in the number of points may cause brief stutters as Triton re-optimizes the kernels.
+
+## ONNX Export
+
+Export a model to a single end-to-end ONNX file (network, keypoint selection and descriptor sampling). Triton is not required for the export; the deformable sampling is expressed with standard ONNX operators (`GridSample`, `MatMul`).
+
+```shell
+pip install onnx onnxruntime
+python export_onnx.py M64                  # -> weights/M64.onnx
+```
+
+| | Name | Shape | Description |
+| :--- | :--- | :--- | :--- |
+| Input | `image` | (B, 1 or 3, H, W) | float32 in [0, 1] |
+| Output | `keypoints` | (B, K, 2) | (x, y) in input pixels |
+| | `scores` | (B, K) | sorted in descending order, `-inf` for padding |
+| | `descriptors` | (B, K, D) | L2-normalized, zeros for padding |
+
+K equals `--top_k` (default 4096). If fewer keypoints pass the threshold, the remaining entries are padding; keep the ones with `scores > -inf`. Batch size and image size are dynamic by default (`--static` fixes them to `--batch`, `--H`, `--W`). Like `CLIDD.forward`, images whose size is not a multiple of 32 are resized inside the model and the keypoints are scaled back. `--radius` and `--score` set the NMS radius and the score threshold. After exporting, the script compares ONNX Runtime with PyTorch.
+
+```python
+import onnxruntime as ort
+
+session = ort.InferenceSession('weights/M64.onnx')
+keypoints, scores, descriptors = session.run(None, {'image': image})  # image: (1, 3, H, W) float32 in [0, 1]
+valid = scores[0] > -float('inf')
+keypoints, descriptors = keypoints[0][valid], descriptors[0][valid]
+```
